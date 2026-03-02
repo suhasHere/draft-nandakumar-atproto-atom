@@ -1,0 +1,2820 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>ATOM: AT Protocol Over MoQ Transport</title>
+<meta content="Suhas Nandakumar" name="author">
+<meta content="Cullen Jennings" name="author">
+<meta content="
+       This document specifies how the Authenticated Transfer (AT) Protocol
+can leverage Media over QUIC Transport (MOQT) for efficient data
+synchronization across decentralized social networks. The AT Protocol's
+firehose event stream and repository synchronization mechanisms map
+naturally to MOQT's publish/subscribe model, enabling scalable relay
+infrastructure, priority-based delivery, and improved resilience for
+large-scale social data distribution. 
+       This specification addresses the challenges of the current WebSocket-based
+transport and demonstrates how MOQT's relay architecture, group-based
+caching, and multiplexed streams provide significant benefits for
+AT Protocol deployments at scale. 
+    " name="description">
+<meta content="xml2rfc 3.31.0" name="generator">
+<meta content="authenticated transfer" name="keyword">
+<meta content="AT Protocol" name="keyword">
+<meta content="MOQT" name="keyword">
+<meta content="decentralized social" name="keyword">
+<meta content="firehose" name="keyword">
+<meta content="draft-nandakumar-atproto-atom-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.31.0
+    Python 3.14.2
+    ConfigArgParse 1.7.1
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.0.2
+    platformdirs 4.9.2
+    pycountry 26.2.16
+    PyYAML 6.0.3
+    requests 2.32.5
+    wcwidth 0.6.0
+-->
+<link href="draft-nandakumar-atproto-atom.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+}
+
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  --font-title: "Sofia Sans Semi Condensed", sans-serif;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+section {
+  clear: both;
+}
+.section-number {
+  padding-right: 0.5em;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 680;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1#title {
+  font-size: 32px;
+  line-height: 40px;
+  clear: both;
+}
+h1#title, h1#rfcnum {
+  margin: 1.5em 0 0.2em;
+}
+h1#rfcnum + h1#title {
+  margin: 0.2em 0;
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+}
+#abstract+p code, #abstract+p samp, #abstract+p tt {
+  font-size: 16px;
+  line-height: 0;
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: var(--highlight-color);
+  border: 1px solid var(--line-color);
+  border-radius: 3px;
+  padding: 0.5em 1em 0;
+  margin-bottom: 0.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+  width: auto;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+/* font-family isn't space-separated, but =~ will have to do */
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: var(--highlight-color);
+  border: 1px solid var(--line-color);
+  border-radius: 3px;
+  padding: 0.5em 1em 0;
+  margin-bottom: 0.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+  width: auto;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  border: none;
+  /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+     support flexbox yet.
+  */
+  display: table;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+  & :is(ol, ul) {
+    margin-left: 1em;
+  }
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+  & li {
+    margin-top: 0.5em;
+  }
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  margin: 0 0 0 2em;
+  & li {
+    margin: 0;
+    & :first-child { margin-top: 0; }
+    & :last-child { margin-bottom: 0; }
+  }
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+  &.olPercent {
+    --indent: 5ch;
+    & > dt {
+      min-width: calc(var(--indent) - 2ch);
+    }
+  }
+  &.olPercent > dt {
+    float: none;
+  }
+
+  dl > dd > & {
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
+}
+dl:not(.dlNewline) > dt {
+  float: left;
+  margin-right: 2ch;
+  min-width: 8ch;
+}
+dl > dd {
+  margin-bottom: .8em;
+  margin-left: var(--indent) !important; /* stupid element overrides */
+  min-height: 2ex;
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+  & > :is(:first-child, .break:first-child + *) {
+    margin-top: 0;
+  }
+  & > :is(:last-child) {
+    margin-bottom: 0;
+  }
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a, a[href].selfRef:hover {
+  text-decoration: none;
+}
+a[href] {
+  color: var(--link-color);
+}
+a[href].selfRef, .iref + a[href].internal {
+  color: var(--text-color);
+}
+a[href]:hover {
+  text-decoration: underline;
+}
+a[href].selfRef:hover {
+  background-color: var(--highlight-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+  caption-side: bottom;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) p {
+    margin: -2px 0;
+    max-height: 0;
+    transition: max-height 2s ease, margin 0.5s ease 0.5s;
+    overflow: hidden;
+  }
+  :is(#status-of-memo, #copyright):hover p,
+  :is(#status-of-memo, #copyright) h2:target ~ p {
+    margin: 0.5em 0;
+    max-height: 500px;
+    overflow: auto;
+  }
+  pre, svg {
+    display: inline-block;
+    /* In the horizontal direction, sometimes people make over-sized figures.
+       Scrollbars for those is therefore necessary: auto adds them as necessary..
+       In the vertical direction, the line-height can combine with the font
+       asender/descender height to produce scrollbars: hidden avoids that. */
+    overflow: auto hidden;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+  border-left: 2px var(--pilcrow-strong) solid;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  width: auto;
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+}
+table.right {
+  margin-left: auto;
+}
+table.center {
+  margin-left: auto;
+  margin-right: auto;
+}
+table.left {
+  margin-right: auto;
+}
+table .text-left {
+  text-align: left;
+}
+table .text-center {
+  text-align: center;
+}
+table .text-right {
+  text-align: right;
+}
+
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+table caption {
+  margin: 0;
+  padding: 3px 0 3px 1em;
+}
+table p {
+  margin: 0;
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+  &[href] {
+    color: var(--pilcrow-weak);
+    &:hover { text-decoration: none; }
+  }
+}
+@media not print {
+  :hover > a.pilcrow, a.pilcrow:focus {
+    opacity: 1;
+  }
+  a.pilcrow[href]:hover {
+    color: var(--pilcrow-strong);
+    background-color: transparent;
+  }
+}
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+  & dt {
+    width: var(--identifier-width);
+    min-width: var(--identifier-width);
+    clear: left;
+    float: left;
+    text-align: right;
+    margin-right: 1ch;
+  }
+  & dd {
+    margin: 0;
+    margin-left: calc(1em + var(--identifier-width)) !important;
+    min-width: 5em;
+  }
+  & .authors {
+    & .author {
+      display: inline-block;
+      margin-right: 1.5em;
+    }
+    & .org {
+      font-style: italic;
+    }
+  }
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+
+  & nav {
+    & ul {
+      margin: 0 0.5em 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    & li {
+      line-height: 1.3em;
+      margin: 2px 0;
+      padding-left: 1.2em;
+      text-indent: -1.2em;
+    }
+  }
+  & a.xref {
+    white-space: normal;
+  }
+}
+
+.references {
+  & > dt {
+    text-align: right;
+    font-weight: bold;
+    min-width: 10ch;
+    margin-right: 1.5ch;
+    &:target::before {
+      content: "⇒";
+      margin: 0 10px 0 -25px;
+    }
+  }
+  & > dd {
+    margin-left: 12ch !important;
+    overflow: visible;
+    & .refInstance {
+      margin-bottom: 0.8em;
+    }
+    & .ascii {
+      margin-bottom: 0.25em;
+    }
+  }
+}
+
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  max-width: 20em;
+  margin: 1em auto 1em 0;
+
+  & .nameRole {
+    font-weight: 700;
+    margin-left: 0;
+  }
+  & .label {
+    margin: 0.5em 0;
+  }
+  & .type {
+    display: none;
+  }
+  & .alternative-contact {
+    margin: 0.5em 0 0.25em 0;
+  }
+  & .non-ascii {
+    margin: 0 0 0 2em;
+  }
+  & div.left {
+    text-align: left;
+  }
+  & div.right {
+    text-align: right;
+  }
+}
+
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses > section {
+    column-count: 2;
+    column-gap: 20px;
+  }
+  #authors-addresses > section > h2 {
+    column-span: all;
+  }
+  /* hack for break-inside: avoid-column */
+  #authors-addresses address {
+    display: inline-block;
+    break-inside: avoid-column;
+  }
+}
+
+/* Comments */
+.rfcEditorRemove p:first-of-type {
+  font-style: italic;
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+
+@media screen {
+  #toc nav {
+    font-family: var(--font-title);
+    font-weight: 360;
+    & > ul { margin-bottom: 2em; }
+    & ul {
+      margin: 0 0 0 4px;
+      & :is(p, li) {
+        margin: 2px 0;
+      }
+    }
+  }
+  #toc a.toplink {
+    float: right;
+  }
+}
+@media not screen {
+  #toc a.toplink {
+    display: none;
+  }
+}
+
+
+/* TOC layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+  }
+  #toc h2 {
+    margin: 0;
+    padding: 2px 0 2px 6px;
+    padding-right: 1em;
+    font-size: 18px;
+    line-height: 24px;
+    min-width: 190px;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+    &::before { /* css hamburger */
+      float: right;
+      position: relative;
+      width: 1em;
+      height: 1px;
+      left: -164px;
+      margin: 8px 0 0 0;
+      background: white none repeat scroll 0 0;
+      box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+      content: "";
+    }
+  }
+  #toc nav {
+    display: none;
+    background-color: var(--background-color);
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    overscroll-behavior: contain;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+  #toc.active {
+    opacity: 1;
+    & nav { display: block; }
+  }
+  /* Make the collapsed ToC header render white on gray also when it's a link */
+  #toc h2 a,
+  #toc h2 a:is(:link, :focus, :hover),
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+  #toc a.toplink {
+    margin: 2px 0.5em 0;
+  }
+}
+
+/* TOC layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+  }
+  #toc h2 {
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 2em;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+  #toc a.toplink {
+    margin: 8px 0.5em 0;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg :is([stroke="black"], [stroke^="#000"]) {
+  stroke: var(--text-color);
+}
+svg :is([stroke="white"], [stroke^="#fff"]) {
+  stroke: var(--background-color);
+}
+svg :is([fill="black"], [fill^="#000"], :not([fill])) {
+  fill: var(--text-color);
+}
+svg :is([fill="white"], [fill^="#fff"]) {
+  fill: var(--background-color);
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">ATOM</td>
+<td class="right">February 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Nandakumar &amp; Jennings</td>
+<td class="center">Expires 1 September 2026</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Media Over QUIC</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-nandakumar-atproto-atom-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-02-28" class="published">28 February 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Standards Track</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2026-09-01">1 September 2026</time></dd>
+<dt class="label-authors">Authors:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">S. Nandakumar</div>
+<div class="org">Cisco</div>
+</div>
+<div class="author">
+      <div class="author-name">C. Jennings</div>
+<div class="org">Cisco Systems</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">ATOM: AT Protocol Over MoQ Transport</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This document specifies how the Authenticated Transfer (AT) Protocol
+can leverage Media over QUIC Transport (MOQT) for efficient data
+synchronization across decentralized social networks. The AT Protocol's
+firehose event stream and repository synchronization mechanisms map
+naturally to MOQT's publish/subscribe model, enabling scalable relay
+infrastructure, priority-based delivery, and improved resilience for
+large-scale social data distribution.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-2">This specification addresses the challenges of the current WebSocket-based
+transport and demonstrates how MOQT's relay architecture, group-based
+caching, and multiplexed streams provide significant benefits for
+AT Protocol deployments at scale.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        The latest revision of this draft can be found at <span><a href="https://snandaku.github.io/draft-nandakumar-atproto-atom/draft-nandakumar-atproto-atom.html">https://snandaku.github.io/draft-nandakumar-atproto-atom/draft-nandakumar-atproto-atom.html</a></span>.
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-nandakumar-atproto-atom/">https://datatracker.ietf.org/doc/draft-nandakumar-atproto-atom/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">
+        Discussion of this document takes place on the
+        Media Over QUIC Working Group mailing list (<span><a href="mailto:moq@ietf.org">mailto:moq@ietf.org</a></span>),
+        which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/moq/">https://mailarchive.ietf.org/arch/browse/moq/</a></span>.
+        Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/moq/">https://www.ietf.org/mailman/listinfo/moq/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+<p id="section-note.1-4">Source for this draft and an issue tracker can be found at
+        <span><a href="https://github.com/snandaku/draft-nandakumar-atproto-atom">https://github.com/snandaku/draft-nandakumar-atproto-atom</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 1 September 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-current-at-protocol-archite" class="internal xref">Current AT Protocol Architecture</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.2">
+                <p id="section-toc.1-1.1.2.2.1" class="keepWithNext"><a href="#section-1.2" class="auto internal xref">1.2</a>.  <a href="#name-requirements-language" class="internal xref">Requirements Language</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-challenges-with-current-tra" class="internal xref">Challenges with Current Transport</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.1">
+                <p id="section-toc.1-1.2.2.1.1"><a href="#section-2.1" class="auto internal xref">2.1</a>.  <a href="#name-scalability-limitations" class="internal xref">Scalability Limitations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.1.2.1">
+                    <p id="section-toc.1-1.2.2.1.2.1.1"><a href="#section-2.1.1" class="auto internal xref">2.1.1</a>.  <a href="#name-connection-overhead" class="internal xref">Connection Overhead</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.1.2.2">
+                    <p id="section-toc.1-1.2.2.1.2.2.1"><a href="#section-2.1.2" class="auto internal xref">2.1.2</a>.  <a href="#name-message-size-constraints" class="internal xref">Message Size Constraints</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.1.2.3">
+                    <p id="section-toc.1-1.2.2.1.2.3.1"><a href="#section-2.1.3" class="auto internal xref">2.1.3</a>.  <a href="#name-single-stream-bottleneck" class="internal xref">Single-Stream Bottleneck</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.2">
+                <p id="section-toc.1-1.2.2.2.1"><a href="#section-2.2" class="auto internal xref">2.2</a>.  <a href="#name-reliability-challenges" class="internal xref">Reliability Challenges</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.2.2.1">
+                    <p id="section-toc.1-1.2.2.2.2.1.1"><a href="#section-2.2.1" class="auto internal xref">2.2.1</a>.  <a href="#name-cursor-based-replay-limitat" class="internal xref">Cursor-Based Replay Limitations</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.2.2.2">
+                    <p id="section-toc.1-1.2.2.2.2.2.1"><a href="#section-2.2.2" class="auto internal xref">2.2.2</a>.  <a href="#name-no-native-late-join-support" class="internal xref">No Native Late-Join Support</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.2.2.3">
+                    <p id="section-toc.1-1.2.2.2.2.3.1"><a href="#section-2.2.3" class="auto internal xref">2.2.3</a>.  <a href="#name-connection-fragility" class="internal xref">Connection Fragility</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.3">
+                <p id="section-toc.1-1.2.2.3.1"><a href="#section-2.3" class="auto internal xref">2.3</a>.  <a href="#name-operational-challenges" class="internal xref">Operational Challenges</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.3.2.1">
+                    <p id="section-toc.1-1.2.2.3.2.1.1"><a href="#section-2.3.1" class="auto internal xref">2.3.1</a>.  <a href="#name-relay-infrastructure-comple" class="internal xref">Relay Infrastructure Complexity</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.3.2.2">
+                    <p id="section-toc.1-1.2.2.3.2.2.1"><a href="#section-2.3.2" class="auto internal xref">2.3.2</a>.  <a href="#name-limited-quality-of-service" class="internal xref">Limited Quality of Service</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-moqt-transport-benefits" class="internal xref">MOQT Transport Benefits</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-native-publish-subscribe-mo" class="internal xref">Native Publish/Subscribe Model</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
+                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-priority-based-delivery" class="internal xref">Priority-Based Delivery</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.3">
+                <p id="section-toc.1-1.3.2.3.1"><a href="#section-3.3" class="auto internal xref">3.3</a>.  <a href="#name-relay-infrastructure" class="internal xref">Relay Infrastructure</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.4">
+                <p id="section-toc.1-1.3.2.4.1"><a href="#section-3.4" class="auto internal xref">3.4</a>.  <a href="#name-group-based-organization-an" class="internal xref">Group-Based Organization and Caching</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.4.2.1">
+                    <p id="section-toc.1-1.3.2.4.2.1.1"><a href="#section-3.4.1" class="auto internal xref">3.4.1</a>.  <a href="#name-late-join-via-subscribe" class="internal xref">Late-Join via SUBSCRIBE</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.4.2.2">
+                    <p id="section-toc.1-1.3.2.4.2.2.1"><a href="#section-3.4.2" class="auto internal xref">3.4.2</a>.  <a href="#name-fetch-for-on-demand-retriev" class="internal xref">FETCH for On-Demand Retrieval</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.4.2.3">
+                    <p id="section-toc.1-1.3.2.4.2.3.1"><a href="#section-3.4.3" class="auto internal xref">3.4.3</a>.  <a href="#name-caching-benefits-summary" class="internal xref">Caching Benefits Summary</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.5">
+                <p id="section-toc.1-1.3.2.5.1"><a href="#section-3.5" class="auto internal xref">3.5</a>.  <a href="#name-quic-transport-advantages" class="internal xref">QUIC Transport Advantages</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-moqt-mapping" class="internal xref">MOQT Mapping</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-connection-establishment" class="internal xref">Connection Establishment</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-track-types" class="internal xref">Track Types</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2.2.1">
+                    <p id="section-toc.1-1.4.2.2.2.1.1"><a href="#section-4.2.1" class="auto internal xref">4.2.1</a>.  <a href="#name-firehose-tracks" class="internal xref">Firehose Tracks</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2.2.2">
+                    <p id="section-toc.1-1.4.2.2.2.2.1"><a href="#section-4.2.2" class="auto internal xref">4.2.2</a>.  <a href="#name-repository-sync-tracks" class="internal xref">Repository Sync Tracks</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2.2.3">
+                    <p id="section-toc.1-1.4.2.2.2.3.1"><a href="#section-4.2.3" class="auto internal xref">4.2.3</a>.  <a href="#name-blob-store-track" class="internal xref">Blob Store Track</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
+                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-object-structure" class="internal xref">Object Structure</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4">
+                <p id="section-toc.1-1.4.2.4.1"><a href="#section-4.4" class="auto internal xref">4.4</a>.  <a href="#name-subscription-and-filtering" class="internal xref">Subscription and Filtering</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.1">
+                    <p id="section-toc.1-1.4.2.4.2.1.1"><a href="#section-4.4.1" class="auto internal xref">4.4.1</a>.  <a href="#name-firehose-subscription" class="internal xref">Firehose Subscription</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.2">
+                    <p id="section-toc.1-1.4.2.4.2.2.1"><a href="#section-4.4.2" class="auto internal xref">4.4.2</a>.  <a href="#name-repository-sync" class="internal xref">Repository Sync</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.3">
+                    <p id="section-toc.1-1.4.2.4.2.3.1"><a href="#section-4.4.3" class="auto internal xref">4.4.3</a>.  <a href="#name-late-join-and-catch-up" class="internal xref">Late-Join and Catch-Up</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.5">
+                <p id="section-toc.1-1.4.2.5.1"><a href="#section-4.5" class="auto internal xref">4.5</a>.  <a href="#name-priority-and-parallelism" class="internal xref">Priority and Parallelism</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.6">
+                <p id="section-toc.1-1.4.2.6.1"><a href="#section-4.6" class="auto internal xref">4.6</a>.  <a href="#name-relay-aggregation" class="internal xref">Relay Aggregation</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-reliability-and-recovery" class="internal xref">Reliability and Recovery</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-cursor-mapping" class="internal xref">Cursor Mapping</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-gap-detection-and-recovery" class="internal xref">Gap Detection and Recovery</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2.2.1">
+                    <p id="section-toc.1-1.5.2.2.2.1.1"><a href="#section-5.2.1" class="auto internal xref">5.2.1</a>.  <a href="#name-detecting-missing-objects" class="internal xref">Detecting Missing Objects</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2.2.2">
+                    <p id="section-toc.1-1.5.2.2.2.2.1"><a href="#section-5.2.2" class="auto internal xref">5.2.2</a>.  <a href="#name-recovery-fetch-missing-obje" class="internal xref">Recovery: Fetch Missing Objects</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2.2.3">
+                    <p id="section-toc.1-1.5.2.2.2.3.1"><a href="#section-5.2.3" class="auto internal xref">5.2.3</a>.  <a href="#name-recovery-fetch-full-group" class="internal xref">Recovery: Fetch Full Group</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2.2.4">
+                    <p id="section-toc.1-1.5.2.2.2.4.1"><a href="#section-5.2.4" class="auto internal xref">5.2.4</a>.  <a href="#name-recovery-full-repository-sy" class="internal xref">Recovery: Full Repository Sync</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-disconnection-handling" class="internal xref">Disconnection Handling</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3.2.1">
+                    <p id="section-toc.1-1.5.2.3.2.1.1"><a href="#section-5.3.1" class="auto internal xref">5.3.1</a>.  <a href="#name-brief-disconnections-0-rtt-" class="internal xref">Brief Disconnections: 0-RTT Resumption</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3.2.2">
+                    <p id="section-toc.1-1.5.2.3.2.2.1"><a href="#section-5.3.2" class="auto internal xref">5.3.2</a>.  <a href="#name-extended-disconnections-cur" class="internal xref">Extended Disconnections: Cursor-Based Reconnection</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3.2.3">
+                    <p id="section-toc.1-1.5.2.3.2.3.1"><a href="#section-5.3.3" class="auto internal xref">5.3.3</a>.  <a href="#name-network-transitions-connect" class="internal xref">Network Transitions: Connection Migration</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-authentication-and-authoriz" class="internal xref">Authentication and Authorization</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref">9.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref">9.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">The Authenticated Transfer (AT) Protocol <span>[<a href="#AT-ARCH" class="cite xref">AT-ARCH</a>]</span> provides a framework
+for decentralized social web applications using self-certifying data
+repositories. The protocol enables users to maintain control over their
+data while participating in a federated network of Personal Data Servers
+(PDS), relays, and application views (AppViews).<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">Currently, AT Protocol relies on two primary transport mechanisms for
+data synchronization:<a href="#section-1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1-3.1">
+          <p id="section-1-3.1.1"><strong>HTTP</strong>: Used for batch repository exports via CAR (Content Addressable
+Archive) files<a href="#section-1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-3.2">
+          <p id="section-1-3.2.1"><strong>WebSocket</strong>: Used for real-time event streams (firehose) with
+CBOR-encoded messages<a href="#section-1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-1-4">While functional, these transport mechanisms face significant challenges
+at scale, particularly for the firehose event stream that must distribute
+updates across a network with millions of users generating billions of
+records.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<p id="section-1-5">This document defines how Media over QUIC Transport (MOQT) <span>[<a href="#MoQ-TRANSPORT" class="cite xref">MoQ-TRANSPORT</a>]</span>
+can serve as an enhanced transport for AT Protocol. MOQT enables low-latency
+delivery while relay caching supports multiple latency spectrums from
+real-time to eventual consistency. The protocol's native publish/subscribe
+model, relay infrastructure, and priority-based delivery address current
+scalability and resilience challenges.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<div id="current-at-protocol-architecture">
+<section id="section-1.1">
+        <h3 id="name-current-at-protocol-archite">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-current-at-protocol-archite" class="section-name selfRef">Current AT Protocol Architecture</a>
+        </h3>
+<div class="alignLeft art-text artwork" id="section-1.1-1">
+<pre>
+AT Protocol Network Architecture:
+
+                           ┌─────────────────┐
+                           │   AppView       │
+                           │  (Indexer)      │
+                           │                 │
+                           └────────▲────────┘
+                                    │
+                              Firehose (WS)
+                                    │
+                           ┌────────┴────────┐
+                           │     Relay       │
+                           │  (Aggregator)   │
+                           └────────▲────────┘
+                                    │
+              ┌─────────────────────┼─────────────────────┐
+              │                     │                     │
+       ┌──────┴──────┐       ┌──────┴──────┐       ┌──────┴──────┐
+       │    PDS A    │       │    PDS B    │       │    PDS C    │
+       │  (Hosts)    │       │  (Hosts)    │       │  (Hosts)    │
+       │ - User 1    │       │ - User 2    │       │ - User 3    │
+       │ - User 2    │       │ - User 5    │       │ - User 6    │
+       └─────────────┘       └─────────────┘       └─────────────┘
+</pre><a href="#section-1.1-1" class="pilcrow">¶</a>
+</div>
+<p id="section-1.1-2">The current architecture comprises:<a href="#section-1.1-2" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-1.1-3">
+          <dt id="section-1.1-3.1">Personal Data Server (PDS):</dt>
+          <dd style="margin-left: 1.5em" id="section-1.1-3.2">
+            <p id="section-1.1-3.2.1">Hosts user accounts and their data repositories. Each PDS provides
+a firehose endpoint for real-time updates and HTTP endpoints for
+repository exports.<a href="#section-1.1-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-1.1-3.3">Relay:</dt>
+          <dd style="margin-left: 1.5em" id="section-1.1-3.4">
+            <p id="section-1.1-3.4.1">Aggregates firehose streams from multiple PDS instances into a
+unified event stream. Full-network relays attempt to include all
+PDS instances in the network.<a href="#section-1.1-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-1.1-3.5">AppView:</dt>
+          <dd style="margin-left: 1.5em" id="section-1.1-3.6">
+            <p id="section-1.1-3.6.1">Application-specific indexing services that consume the firehose
+to build aggregated views (e.g., feeds, search, analytics).<a href="#section-1.1-3.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="requirements-language">
+<section id="section-1.2">
+        <h3 id="name-requirements-language">
+<a href="#section-1.2" class="section-number selfRef">1.2. </a><a href="#name-requirements-language" class="section-name selfRef">Requirements Language</a>
+        </h3>
+<p id="section-1.2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
+appear in all capitals, as shown here.<a href="#section-1.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="challenges-with-current-transport">
+<section id="section-2">
+      <h2 id="name-challenges-with-current-tra">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-challenges-with-current-tra" class="section-name selfRef">Challenges with Current Transport</a>
+      </h2>
+<p id="section-2-1">The current WebSocket-based transport for AT Protocol faces several
+challenges that impact scalability, reliability, and operational
+efficiency.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<div id="scalability-limitations">
+<section id="section-2.1">
+        <h3 id="name-scalability-limitations">
+<a href="#section-2.1" class="section-number selfRef">2.1. </a><a href="#name-scalability-limitations" class="section-name selfRef">Scalability Limitations</a>
+        </h3>
+<div id="connection-overhead">
+<section id="section-2.1.1">
+          <h4 id="name-connection-overhead">
+<a href="#section-2.1.1" class="section-number selfRef">2.1.1. </a><a href="#name-connection-overhead" class="section-name selfRef">Connection Overhead</a>
+          </h4>
+<p id="section-2.1.1-1">Each subscriber to a PDS or relay firehose requires a dedicated
+WebSocket connection. At network scale, this creates:<a href="#section-2.1.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-2.1.1-2.1">
+              <p id="section-2.1.1-2.1.1">Connection state overhead on servers hosting popular content<a href="#section-2.1.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-2.1.1-2.2">
+              <p id="section-2.1.1-2.2.1">TCP head-of-line blocking affecting all events on a connection<a href="#section-2.1.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-2.1.1-2.3">
+              <p id="section-2.1.1-2.3.1">Limited ability to prioritize critical events during congestion<a href="#section-2.1.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+<div id="message-size-constraints">
+<section id="section-2.1.2">
+          <h4 id="name-message-size-constraints">
+<a href="#section-2.1.2" class="section-number selfRef">2.1.2. </a><a href="#name-message-size-constraints" class="section-name selfRef">Message Size Constraints</a>
+          </h4>
+<p id="section-2.1.2-1">The current protocol specifies a hard maximum of 5 MBytes per WebSocket
+frame. While this accommodates most operations, it creates challenges for:<a href="#section-2.1.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-2.1.2-2.1">
+              <p id="section-2.1.2-2.1.1">Large repository commits (limited to 2MB blocks, 200 operations)<a href="#section-2.1.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-2.1.2-2.2">
+              <p id="section-2.1.2-2.2.1">Efficient batching of small updates<a href="#section-2.1.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-2.1.2-2.3">
+              <p id="section-2.1.2-2.3.1">Variable-size content distribution<a href="#section-2.1.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+<div id="single-stream-bottleneck">
+<section id="section-2.1.3">
+          <h4 id="name-single-stream-bottleneck">
+<a href="#section-2.1.3" class="section-number selfRef">2.1.3. </a><a href="#name-single-stream-bottleneck" class="section-name selfRef">Single-Stream Bottleneck</a>
+          </h4>
+<div class="alignLeft art-text artwork" id="section-2.1.3-1">
+<pre>
+Current Firehose: Single Stream for All Event Types
+
+WebSocket Connection
+│
+▼
+┌─────────────────────────────────────────────────────────────────┐
+│  #commit │ #commit │ #identity │ #commit │ #account │ #commit   │
+│  (big)   │ (small) │ (urgent)  │ (med)   │ (urgent) │ (big)     │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+                    Head-of-line blocking:
+                    Urgent #identity event must wait
+                    for large #commit to complete
+</pre><a href="#section-2.1.3-1" class="pilcrow">¶</a>
+</div>
+<p id="section-2.1.3-2">All event types flow through a single WebSocket stream without
+differentiation, meaning:<a href="#section-2.1.3-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-2.1.3-3.1">
+              <p id="section-2.1.3-3.1.1">High-priority identity changes wait behind large commit events<a href="#section-2.1.3-3.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-2.1.3-3.2">
+              <p id="section-2.1.3-3.2.1">Account status updates cannot preempt in-progress transfers<a href="#section-2.1.3-3.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-2.1.3-3.3">
+              <p id="section-2.1.3-3.3.1">No mechanism for subscribers to filter by event type at transport layer<a href="#section-2.1.3-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="reliability-challenges">
+<section id="section-2.2">
+        <h3 id="name-reliability-challenges">
+<a href="#section-2.2" class="section-number selfRef">2.2. </a><a href="#name-reliability-challenges" class="section-name selfRef">Reliability Challenges</a>
+        </h3>
+<div id="cursor-based-replay-limitations">
+<section id="section-2.2.1">
+          <h4 id="name-cursor-based-replay-limitat">
+<a href="#section-2.2.1" class="section-number selfRef">2.2.1. </a><a href="#name-cursor-based-replay-limitat" class="section-name selfRef">Cursor-Based Replay Limitations</a>
+          </h4>
+<p id="section-2.2.1-1">The current firehose relies on monotonic cursor values for replay after
+disconnection. This approach requires consumers to track cursor state
+externally, since the protocol provides no mechanism for server-side
+cursor persistence. Gap detection depends entirely on commit chain
+validation, which is computationally expensive and requires maintaining
+local state. When gaps are detected, recovery requires fetching the
+complete repository, creating a thundering herd risk when many
+consumers reconnect simultaneously after an outage.<a href="#section-2.2.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="no-native-late-join-support">
+<section id="section-2.2.2">
+          <h4 id="name-no-native-late-join-support">
+<a href="#section-2.2.2" class="section-number selfRef">2.2.2. </a><a href="#name-no-native-late-join-support" class="section-name selfRef">No Native Late-Join Support</a>
+          </h4>
+<p id="section-2.2.2-1">When a new consumer connects to a firehose, it must either start from
+the current position and miss all prior events, or replay from a
+cursor to catch up. There is no concept of "recent state" that would
+allow quick synchronization to a meaningful starting point. Consumers
+cannot receive cached recent events without initiating a full replay
+sequence, which increases latency for new subscribers and places
+additional load on the server.<a href="#section-2.2.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="connection-fragility">
+<section id="section-2.2.3">
+          <h4 id="name-connection-fragility">
+<a href="#section-2.2.3" class="section-number selfRef">2.2.3. </a><a href="#name-connection-fragility" class="section-name selfRef">Connection Fragility</a>
+          </h4>
+<p id="section-2.2.3-1">WebSocket connections over TCP are susceptible to network path changes
+that cause connection drops. The protocol provides no mechanism for
+connection migration when a client's IP address changes, such as when
+moving between networks on a mobile device. Any network transition
+requires establishing a completely new connection and resuming from
+the last known cursor position.<a href="#section-2.2.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="operational-challenges">
+<section id="section-2.3">
+        <h3 id="name-operational-challenges">
+<a href="#section-2.3" class="section-number selfRef">2.3. </a><a href="#name-operational-challenges" class="section-name selfRef">Operational Challenges</a>
+        </h3>
+<div id="relay-infrastructure-complexity">
+<section id="section-2.3.1">
+          <h4 id="name-relay-infrastructure-comple">
+<a href="#section-2.3.1" class="section-number selfRef">2.3.1. </a><a href="#name-relay-infrastructure-comple" class="section-name selfRef">Relay Infrastructure Complexity</a>
+          </h4>
+<p id="section-2.3.1-1">Current relays face significant operational burden in maintaining the
+firehose infrastructure. Each relay must establish and maintain persistent
+WebSocket connections to all upstream PDS instances it aggregates, scaling
+linearly with the number of sources. When connections fail, relays must
+handle reconnection logic and cursor tracking independently for each
+upstream source. Custom caching and replay logic must be implemented at
+the application layer, as the transport provides no native support for
+these operations. Additionally, relays must build proprietary distribution
+mechanisms to serve their own downstream subscribers, duplicating effort
+across the ecosystem.<a href="#section-2.3.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="limited-quality-of-service">
+<section id="section-2.3.2">
+          <h4 id="name-limited-quality-of-service">
+<a href="#section-2.3.2" class="section-number selfRef">2.3.2. </a><a href="#name-limited-quality-of-service" class="section-name selfRef">Limited Quality of Service</a>
+          </h4>
+<p id="section-2.3.2-1">The current transport provides no native mechanism for quality of service
+differentiation. All event types receive equal treatment regardless of
+their operational importance, so critical account status changes compete
+with routine content updates for bandwidth. Rate limiting based on consumer
+capacity must be implemented entirely at the application layer, with no
+transport-level flow control. Graceful degradation during overload
+conditions is difficult to achieve, often resulting in connection failures
+rather than controlled service reduction.<a href="#section-2.3.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="moqt-transport-benefits">
+<section id="section-3">
+      <h2 id="name-moqt-transport-benefits">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-moqt-transport-benefits" class="section-name selfRef">MOQT Transport Benefits</a>
+      </h2>
+<p id="section-3-1">MOQT addresses the challenges identified above through its native
+architecture designed for large-scale media distribution.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<div id="native-publishsubscribe-model">
+<section id="section-3.1">
+        <h3 id="name-native-publish-subscribe-mo">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-native-publish-subscribe-mo" class="section-name selfRef">Native Publish/Subscribe Model</a>
+        </h3>
+<p id="section-3.1-1">MOQT's publish/subscribe model aligns naturally with AT Protocol's
+firehose semantics. Subscribers select specific event tracks of interest
+while publishers announce available tracks via PUBLISH_NAMESPACE. Since
+relays handle distribution, no dedicated connection is required per
+subscriber, and track-level subscription granularity reduces unnecessary
+traffic.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+<p id="section-3.1-2">PUBLISH_NAMESPACE enables dynamic discovery of available content. When
+a PDS comes online, it announces its namespaces to connected relays,
+advertising firehose tracks, repository sync tracks, and blob stores.
+Relays learn about new PDS instances automatically without static
+configuration, enabling the network to scale organically as new servers
+join.<a href="#section-3.1-2" class="pilcrow">¶</a></p>
+<p id="section-3.1-3">SUBSCRIBE_NAMESPACE allows subscribers to discover available tracks
+using prefix-based queries. A full-network relay can subscribe to
+at/firehose/ to discover all PDS instances publishing firehose events,
+then selectively subscribe to each. An AppView can query a relay's
+namespace to enumerate available event types before subscribing to
+specific tracks of interest. This discovery mechanism eliminates the
+need for out-of-band coordination when adding new publishers or
+subscribers to the network.<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+<p id="section-3.1-4">A PDS advertises its available namespaces via PUBLISH_NAMESPACE:<a href="#section-3.1-4" class="pilcrow">¶</a></p>
+<table class="center" id="table-1">
+          <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Namespace</th>
+              <th class="text-left" rowspan="1" colspan="1">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>at/firehose/pds.example.com</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Firehose events from this PDS</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>at/repo/pds.example.com</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Repository sync tracks</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>at/blobs/pds.example.com</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Blob storage</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-3.1-6">A relay discovering PDS instances issues SUBSCRIBE_NAMESPACE with
+<code>at/firehose/</code> and receives a NAMESPACE response listing all matching
+hosts (potentially thousands of PDS instances).<a href="#section-3.1-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="priority-based-delivery">
+<section id="section-3.2">
+        <h3 id="name-priority-based-delivery">
+<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-priority-based-delivery" class="section-name selfRef">Priority-Based Delivery</a>
+        </h3>
+<p id="section-3.2-1">MOQT's 0-255 priority scale enables differentiated event delivery,
+ensuring that critical account takedowns (priority 0-15) and urgent
+identity changes such as key rotations (priority 16-31) are delivered
+ahead of routine commit events (priority 96-191). This prevents large
+content transfers from blocking time-sensitive operations.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-2">
+          <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">AT Event Type</th>
+              <th class="text-left" rowspan="1" colspan="1">MOQT Priority</th>
+              <th class="text-left" rowspan="1" colspan="1">Rationale</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">#account (takedown)</td>
+              <td class="text-left" rowspan="1" colspan="1">0-15</td>
+              <td class="text-left" rowspan="1" colspan="1">Critical - affects content availability</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">#identity</td>
+              <td class="text-left" rowspan="1" colspan="1">16-31</td>
+              <td class="text-left" rowspan="1" colspan="1">Urgent - key rotation, handle changes</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">#account (status)</td>
+              <td class="text-left" rowspan="1" colspan="1">32-63</td>
+              <td class="text-left" rowspan="1" colspan="1">Important - account state changes</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">#sync</td>
+              <td class="text-left" rowspan="1" colspan="1">64-95</td>
+              <td class="text-left" rowspan="1" colspan="1">Moderate - state reset events</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">#commit (small)</td>
+              <td class="text-left" rowspan="1" colspan="1">96-127</td>
+              <td class="text-left" rowspan="1" colspan="1">Normal - typical record operations</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">#commit (large)</td>
+              <td class="text-left" rowspan="1" colspan="1">128-191</td>
+              <td class="text-left" rowspan="1" colspan="1">Background - bulk content updates</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Repository export</td>
+              <td class="text-left" rowspan="1" colspan="1">192-255</td>
+              <td class="text-left" rowspan="1" colspan="1">Bulk - full sync operations</td>
+            </tr>
+          </tbody>
+        </table>
+</section>
+</div>
+<div id="relay-infrastructure">
+<section id="section-3.3">
+        <h3 id="name-relay-infrastructure">
+<a href="#section-3.3" class="section-number selfRef">3.3. </a><a href="#name-relay-infrastructure" class="section-name selfRef">Relay Infrastructure</a>
+        </h3>
+<p id="section-3.3-1">MOQT relays provide purpose-built infrastructure for AT Protocol
+distribution. Hierarchical relay topologies reduce origin load by
+distributing cached content from regional nodes, while geographic
+placement optimizes latency for subscribers. Because the relay protocol
+is standardized, operators need not implement custom distribution logic.<a href="#section-3.3-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-3.3-2">
+<pre>
+MOQT Relay Network for AT Protocol:
+
+                    ┌─────────────────┐
+                    │  Global Relay   │
+                    │  (Federation)   │◄─── Cross-region aggregation
+                    └────────┬────────┘
+                             │
+           ┌─────────────────┼─────────────────┐
+           │                 │                 │
+    ┌──────▼──────┐   ┌──────▼──────┐   ┌──────▼──────┐
+    │ Regional    │   │ Regional    │   │ Regional    │
+    │ Relay A     │   │ Relay B     │   │ Relay C     │
+    └──────┬──────┘   └──────┬──────┘   └──────┬──────┘
+           │                 │                 │
+     ┌─────┴─────┐     ┌─────┴─────┐     ┌─────┴─────┐
+     │           │     │           │     │           │
+   PDS 1      PDS 2  PDS 3      PDS 4  PDS 5      PDS 6
+     ▲           ▲     ▲           ▲     ▲           ▲
+     │           │     │           │     │           │
+   Users       Users Users       Users Users       Users
+</pre><a href="#section-3.3-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="group-based-organization-and-caching">
+<section id="section-3.4">
+        <h3 id="name-group-based-organization-an">
+<a href="#section-3.4" class="section-number selfRef">3.4. </a><a href="#name-group-based-organization-an" class="section-name selfRef">Group-Based Organization and Caching</a>
+        </h3>
+<p id="section-3.4-1">MOQT groups enable efficient caching and late-join support. Late-joining
+subscribers receive the most recent group immediately rather than
+replaying from the beginning, and relay caches at each tier reduce
+upstream load. Group boundaries serve as natural replay points, with
+cursor semantics mapping directly to Group ID and Object ID.<a href="#section-3.4-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-3.4-2">
+<pre>
+Group Hierarchy:  [G0: events 0-99] [G1: events 100-199] ... [GN: live]
+                         ↓                 ↓                    ↓
+Relay Cache:          cached            cached              caching
+</pre><a href="#section-3.4-2" class="pilcrow">¶</a>
+</div>
+<div id="late-join-via-subscribe">
+<section id="section-3.4.1">
+          <h4 id="name-late-join-via-subscribe">
+<a href="#section-3.4.1" class="section-number selfRef">3.4.1. </a><a href="#name-late-join-via-subscribe" class="section-name selfRef">Late-Join via SUBSCRIBE</a>
+          </h4>
+<p id="section-3.4.1-1">MOQT's SUBSCRIBE message includes filter parameters that control the
+starting position for delivery. As defined in <span>[<a href="#MoQ-TRANSPORT" class="cite xref">MoQ-TRANSPORT</a>]</span>, these
+filters include LatestGroup (start from the newest available group),
+LatestObject (start from the most recent object), AbsoluteStart
+(begin at a specific group/object position), and AbsoluteRange
+(request a bounded range). These filters allow subscribers to join
+at any point and then continue receiving live and future content.<a href="#section-3.4.1-1" class="pilcrow">¶</a></p>
+<p id="section-3.4.1-2">SUBSCRIBE delivers content from the specified starting position
+forward, keeping subscribers at the live edge as new content arrives.
+For historical content retrieval, subscribers use FETCH operations
+instead (see <a href="#fetch-for-on-demand-retrieval" class="auto internal xref">Section 3.4.2</a>).<a href="#section-3.4.1-2" class="pilcrow">¶</a></p>
+<p id="section-3.4.1-3">This capability supports several AT Protocol scenarios.
+A new subscriber joining a track uses LatestGroup to begin
+with current activity.<a href="#section-3.4.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="fetch-for-on-demand-retrieval">
+<section id="section-3.4.2">
+          <h4 id="name-fetch-for-on-demand-retriev">
+<a href="#section-3.4.2" class="section-number selfRef">3.4.2. </a><a href="#name-fetch-for-on-demand-retriev" class="section-name selfRef">FETCH for On-Demand Retrieval</a>
+          </h4>
+<p id="section-3.4.2-1">MOQT's FETCH operation complements SUBSCRIBE by enabling selective
+retrieval of specific objects. While SUBSCRIBE keeps clients at the
+live edge, FETCH retrieves historical content
+regardless of how far back it exists. FETCH specifies exact group and
+object ranges, retrieving precisely the needed data without establishing
+a continuous subscription.<a href="#section-3.4.2-1" class="pilcrow">¶</a></p>
+<p id="section-3.4.2-2">When a subscriber detects a gap in received events, it can FETCH the
+missing objects directly rather than replaying an entire group. When
+verifying a specific record, a client can FETCH just the MST path blocks
+needed for cryptographic validation. For deep historical queries, an
+analytics service can FETCH specific commit ranges from months prior.<a href="#section-3.4.2-2" class="pilcrow">¶</a></p>
+<p id="section-3.4.2-3">Relay caching amplifies the benefit of FETCH operations. Popular content
+such as viral images, high-profile account commits, and frequently
+accessed MST nodes remain in relay cache. Subsequent FETCH requests
+for this content are served locally, reducing latency and eliminating
+load on origin servers. For a viral post with an embedded image,
+thousands of FETCH requests for the image blob resolve to a single
+origin fetch followed by cache hits at the relay tier.<a href="#section-3.4.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="caching-benefits-summary">
+<section id="section-3.4.3">
+          <h4 id="name-caching-benefits-summary">
+<a href="#section-3.4.3" class="section-number selfRef">3.4.3. </a><a href="#name-caching-benefits-summary" class="section-name selfRef">Caching Benefits Summary</a>
+          </h4>
+<p id="section-3.4.3-1">The combination of SUBSCRIBE late-join and FETCH with relay caching
+provides several benefits for AT Protocol deployments:<a href="#section-3.4.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3.4.3-2.1">
+              <p id="section-3.4.3-2.1.1">Fan-out efficiency: Origin publishes once, relay serves many subscribers<a href="#section-3.4.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-3.4.3-2.2">
+              <p id="section-3.4.3-2.2.1">Late-join speed: New subscribers receive cached history immediately<a href="#section-3.4.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-3.4.3-2.3">
+              <p id="section-3.4.3-2.3.1">Gap recovery: Missing events fetched from relay cache, not origin<a href="#section-3.4.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-3.4.3-2.4">
+              <p id="section-3.4.3-2.4.1">Popular content: High-demand blobs and commits served from cache<a href="#section-3.4.3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-3.4.3-2.5">
+              <p id="section-3.4.3-2.5.1">Reduced origin load: Relay tier absorbs read amplification<a href="#section-3.4.3-2.5.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="quic-transport-advantages">
+<section id="section-3.5">
+        <h3 id="name-quic-transport-advantages">
+<a href="#section-3.5" class="section-number selfRef">3.5. </a><a href="#name-quic-transport-advantages" class="section-name selfRef">QUIC Transport Advantages</a>
+        </h3>
+<p id="section-3.5-1">Leveraging QUIC <span>[<a href="#RFC9000" class="cite xref">RFC9000</a>]</span> provides connection migration so that
+firehose subscriptions survive network changes such as IP address
+transitions or WiFi-to-cellular handoffs. Multiplexed streams eliminate
+head-of-line blocking between logical channels, while mandatory TLS 1.3
+<span>[<a href="#RFC8446" class="cite xref">RFC8446</a>]</span> ensures built-in encryption. Per-stream and connection-level
+flow control prevents subscriber overload, and 0-RTT resumption enables
+fast reconnection after brief disconnections.<a href="#section-3.5-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="moqt-mapping">
+<section id="section-4">
+      <h2 id="name-moqt-mapping">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-moqt-mapping" class="section-name selfRef">MOQT Mapping</a>
+      </h2>
+<p id="section-4-1">This section defines how AT Protocol data maps to MOQT primitives.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<div id="connection-establishment">
+<section id="section-4.1">
+        <h3 id="name-connection-establishment">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-connection-establishment" class="section-name selfRef">Connection Establishment</a>
+        </h3>
+<p id="section-4.1-1">AT Protocol endpoints using MOQT establish connections following
+the standard MOQT setup procedure:<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.1-2">
+<pre>
+AT-over-MOQT Connection Establishment:
+
+PDS/Relay                                            Subscriber
+    │                                                     │
+    │◄─── QUIC Connection (ALPN: "moqt") ─────────────────│
+    │──── QUIC Connection Established ───────────────────▶│
+    │                                                     │
+    │◄─── MOQT CLIENT_SETUP ──────────────────────────────│
+    │     (at-version: 1, supported-events: 0x0F)         │
+    │                                                     │
+    │──── MOQT SERVER_SETUP ─────────────────────────────▶│
+    │     (at-version: 1, relay-capabilities: 0x07)       │
+    │                                                     │
+    │──── PUBLISH_NAMESPACE ─────────────────────────────▶│
+    │     (at/{pds-host}/firehose)                        │
+    │                                                     │
+    │◄─── SUBSCRIBE_NAMESPACE ────────────────────────────│
+    │     (at/{pds-host}/firehose)                        │
+    │                                                     │
+    │──── NAMESPACE (tracks available) ──────────────────▶│
+    │     (commits, identity, account, sync)              │
+    │                                                     │
+    │◄─── SUBSCRIBE (commits) ────────────────────────────│
+    │                                                     │
+    │──── SUBSCRIBE_OK ──────────────────────────────────▶│
+    │                                                     │
+    │═════ Firehose Event Stream ════════════════════════▶│
+</pre><a href="#section-4.1-2" class="pilcrow">¶</a>
+</div>
+<p id="section-4.1-3">Setup parameters for AT Protocol:<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+<table class="center" id="table-3">
+          <caption><a href="#table-3" class="selfRef">Table 3</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Parameter</th>
+              <th class="text-left" rowspan="1" colspan="1">ID</th>
+              <th class="text-left" rowspan="1" colspan="1">Type</th>
+              <th class="text-left" rowspan="1" colspan="1">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">at-version</td>
+              <td class="text-left" rowspan="1" colspan="1">0x41540001</td>
+              <td class="text-left" rowspan="1" colspan="1">varint</td>
+              <td class="text-left" rowspan="1" colspan="1">AT Protocol version</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">at-supported-events</td>
+              <td class="text-left" rowspan="1" colspan="1">0x41540002</td>
+              <td class="text-left" rowspan="1" colspan="1">varint</td>
+              <td class="text-left" rowspan="1" colspan="1">Bitmask of supported event types</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">at-relay-caps</td>
+              <td class="text-left" rowspan="1" colspan="1">0x41540003</td>
+              <td class="text-left" rowspan="1" colspan="1">varint</td>
+              <td class="text-left" rowspan="1" colspan="1">Relay capability flags</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-4.1-5">Event type bitmask values: 0x01 (#commit), 0x02 (#identity), 0x04 (#account), 0x08 (#sync).<a href="#section-4.1-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="track-types">
+<section id="section-4.2">
+        <h3 id="name-track-types">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-track-types" class="section-name selfRef">Track Types</a>
+        </h3>
+<p id="section-4.2-1">ATOM defines three track types for different use cases:<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<div id="firehose-tracks">
+<section id="section-4.2.1">
+          <h4 id="name-firehose-tracks">
+<a href="#section-4.2.1" class="section-number selfRef">4.2.1. </a><a href="#name-firehose-tracks" class="section-name selfRef">Firehose Tracks</a>
+          </h4>
+<p id="section-4.2.1-1">Firehose tracks carry real-time event streams from PDS hosts.<a href="#section-4.2.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.2.1-2">Namespace structure: <code>at/firehose/{host}/{event-type} -- {did|all}</code><a href="#section-4.2.1-2" class="pilcrow">¶</a></p>
+<table class="center" id="table-4">
+            <caption><a href="#table-4" class="selfRef">Table 4</a></caption>
+<thead>
+              <tr>
+                <th class="text-left" rowspan="1" colspan="1">Track</th>
+                <th class="text-left" rowspan="1" colspan="1">Namespace</th>
+                <th class="text-left" rowspan="1" colspan="1">Content</th>
+                <th class="text-left" rowspan="1" colspan="1">Priority</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">Commits</td>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>at/firehose/{host}/commits</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">Repository updates</td>
+                <td class="text-left" rowspan="1" colspan="1">96-191</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">Identity</td>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>at/firehose/{host}/identity</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">DID/handle changes</td>
+                <td class="text-left" rowspan="1" colspan="1">16-31</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">Account</td>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>at/firehose/{host}/account</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">Hosting status</td>
+                <td class="text-left" rowspan="1" colspan="1">0-63</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">Sync</td>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>at/firehose/{host}/sync</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">State assertions</td>
+                <td class="text-left" rowspan="1" colspan="1">64-95</td>
+              </tr>
+            </tbody>
+          </table>
+<p id="section-4.2.1-4">Groups organize events by sequence number (e.g., 1000 events per group).
+Track name is either a specific DID or "all" for aggregated streams.<a href="#section-4.2.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="repository-sync-tracks">
+<section id="section-4.2.2">
+          <h4 id="name-repository-sync-tracks">
+<a href="#section-4.2.2" class="section-number selfRef">4.2.2. </a><a href="#name-repository-sync-tracks" class="section-name selfRef">Repository Sync Tracks</a>
+          </h4>
+<p id="section-4.2.2-1">Repository sync tracks provide full block-level repository data.<a href="#section-4.2.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2.2-2">Namespace: <code>at/repo/{host}/{did}/sync</code><a href="#section-4.2.2-2" class="pilcrow">¶</a></p>
+<p id="section-4.2.2-3">The MOQT hierarchy maps to AT Protocol repository concepts:<a href="#section-4.2.2-3" class="pilcrow">¶</a></p>
+<table class="center" id="table-5">
+            <caption><a href="#table-5" class="selfRef">Table 5</a></caption>
+<thead>
+              <tr>
+                <th class="text-left" rowspan="1" colspan="1">MOQT Level</th>
+                <th class="text-left" rowspan="1" colspan="1">AT Protocol Concept</th>
+                <th class="text-left" rowspan="1" colspan="1">Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">Track</td>
+                <td class="text-left" rowspan="1" colspan="1">Repository (DID)</td>
+                <td class="text-left" rowspan="1" colspan="1">Subscription unit</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">Group</td>
+                <td class="text-left" rowspan="1" colspan="1">Commit/Revision</td>
+                <td class="text-left" rowspan="1" colspan="1">Temporal progression</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">Subgroup</td>
+                <td class="text-left" rowspan="1" colspan="1">Collection + MST path</td>
+                <td class="text-left" rowspan="1" colspan="1">Structural organization</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">Object</td>
+                <td class="text-left" rowspan="1" colspan="1">Record/Block</td>
+                <td class="text-left" rowspan="1" colspan="1">Individual data items</td>
+              </tr>
+            </tbody>
+          </table>
+<p id="section-4.2.2-5">Each group represents a commit. Subgroup 0 contains the signed commit
+and MST structure; subsequent subgroups contain collections with MST
+proof paths for independent verification.<a href="#section-4.2.2-5" class="pilcrow">¶</a></p>
+<table class="center" id="table-6">
+            <caption><a href="#table-6" class="selfRef">Table 6</a></caption>
+<thead>
+              <tr>
+                <th class="text-left" rowspan="1" colspan="1">Subgroup</th>
+                <th class="text-left" rowspan="1" colspan="1">Contents</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">0</td>
+                <td class="text-left" rowspan="1" colspan="1">Commit block + full MST (verification anchor)</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">1+</td>
+                <td class="text-left" rowspan="1" colspan="1">Collection records + MST proof path</td>
+              </tr>
+            </tbody>
+          </table>
+<p id="section-4.2.2-7">Objects within a group are ordered: signed commit (ObjectID 0), MST root,
+MST intermediate nodes, then records. The at-block-cid extension header
+carries the CID for integrity verification.<a href="#section-4.2.2-7" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.2.2-8">
+<pre>
+MST Structure and MOQT Mapping:
+
+Repository (DID: did:plc:abc123)
+│
+├── Commit (rev: 3kf7x2...)          ──────────────▶ Group N
+│   │
+│   ├── Signed Commit Block          ──────────────▶ Subgroup 0, Object 0
+│   │
+│   └── MST (Merkle Search Tree)
+│       │
+│       ├── Root Node (CID: bafyr...)──────────────▶ Subgroup 0, Object 1
+│       │   ├── key: "app.bsky.feed.post/3k..."
+│       │   └── children: [L, R]
+│       │
+│       ├── Left Node               ───────────────▶ Subgroup 0, Object 2
+│       │   └── key: "app.bsky.actor.profile/self"
+│       │
+│       └── Right Node              ───────────────▶ Subgroup 0, Object 3
+│           └── key: "app.bsky.graph.follow/3k..."
+│
+├── Collection: app.bsky.feed.post   ──────────────▶ Subgroup 1
+│   ├── Record 3k7abc... + MST proof ──────────────▶ Object 0
+│   └── Record 3k7def... + MST proof ──────────────▶ Object 1
+│
+├── Collection: app.bsky.actor.profile ────────────▶ Subgroup 2
+│   └── Record self + MST proof      ──────────────▶ Object 0
+│
+└── Collection: app.bsky.graph.follow ─────────────▶ Subgroup 3
+    └── Record 3k9xyz... + MST proof ──────────────▶ Object 0
+</pre><a href="#section-4.2.2-8" class="pilcrow">¶</a>
+</div>
+<p id="section-4.2.2-9">The MST proof path included with each record contains the minimal set
+of tree nodes required to verify that record's inclusion in the commit.
+This enables independent verification of individual records without
+downloading the entire repository.<a href="#section-4.2.2-9" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="blob-store-track">
+<section id="section-4.2.3">
+          <h4 id="name-blob-store-track">
+<a href="#section-4.2.3" class="section-number selfRef">4.2.3. </a><a href="#name-blob-store-track" class="section-name selfRef">Blob Store Track</a>
+          </h4>
+<p id="section-4.2.3-1">Blob store tracks enable cross-repository deduplication of large media.<a href="#section-4.2.3-1" class="pilcrow">¶</a></p>
+<p id="section-4.2.3-2">Namespace: <code>at/blobs/{host}</code><a href="#section-4.2.3-2" class="pilcrow">¶</a></p>
+<p id="section-4.2.3-3">The Group ID is derived from the CID (first 8 bytes of multihash as uint64),
+Object ID is always 0. This deterministic mapping ensures identical blobs
+from different repositories resolve to the same MOQT location.<a href="#section-4.2.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="object-structure">
+<section id="section-4.3">
+        <h3 id="name-object-structure">
+<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-object-structure" class="section-name selfRef">Object Structure</a>
+        </h3>
+<p id="section-4.3-1">AT Protocol events are encapsulated in MOQT objects:<a href="#section-4.3-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.3-2">
+<pre>
+MOQT Object Structure:
+
+┌─────────────────────────────────────────────────────────────┐
+│ Extension Headers:                                          │
+│   at-event-type (0x41544501): varint                        │
+│   at-repo-did (0x41544502): string                          │
+│   at-repo-rev (0x41544503): string (TID)                    │
+│   at-seq (0x41544504): varint (cursor equivalent)           │
+│   at-block-cid (0x41544505): bytes (for repo sync blocks)   │
+└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ Payload: CBOR-encoded event (compatible with AT-REPO)       │
+└─────────────────────────────────────────────────────────────┘
+</pre><a href="#section-4.3-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="subscription-and-filtering">
+<section id="section-4.4">
+        <h3 id="name-subscription-and-filtering">
+<a href="#section-4.4" class="section-number selfRef">4.4. </a><a href="#name-subscription-and-filtering" class="section-name selfRef">Subscription and Filtering</a>
+        </h3>
+<div id="firehose-subscription">
+<section id="section-4.4.1">
+          <h4 id="name-firehose-subscription">
+<a href="#section-4.4.1" class="section-number selfRef">4.4.1. </a><a href="#name-firehose-subscription" class="section-name selfRef">Firehose Subscription</a>
+          </h4>
+<p id="section-4.4.1-1">Subscribers specify start position and filtering:<a href="#section-4.4.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.4.1-2.1">
+              <p id="section-4.4.1-2.1.1"><code>StartGroup=Latest</code>: Begin with live events (default)<a href="#section-4.4.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.4.1-2.2">
+              <p id="section-4.4.1-2.2.1"><code>StartGroup=N</code>: Resume from specific cursor position<a href="#section-4.4.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.4.1-2.3">
+              <p id="section-4.4.1-2.3.1">Track name <code>all</code> or specific DID for filtering<a href="#section-4.4.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+<div id="repository-sync">
+<section id="section-4.4.2">
+          <h4 id="name-repository-sync">
+<a href="#section-4.4.2" class="section-number selfRef">4.4.2. </a><a href="#name-repository-sync" class="section-name selfRef">Repository Sync</a>
+          </h4>
+<p id="section-4.4.2-1">Subgroup filtering enables selective synchronization:<a href="#section-4.4.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.4.2-2">
+<pre>
+Selective Sync Examples:
+
+Full repository:     SubgroupFilter: [0, 1, 2, 3, ...]
+Posts only:          SubgroupFilter: [0, 1]  (~15% bandwidth)
+Verification only:   SubgroupFilter: [0]     (~2% bandwidth)
+</pre><a href="#section-4.4.2-2" class="pilcrow">¶</a>
+</div>
+<p id="section-4.4.2-3">Temporal navigation with groups:<a href="#section-4.4.2-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.4.2-4.1">
+              <p id="section-4.4.2-4.1.1"><code>Subscribe StartGroup=LATEST</code>: Current state + live updates<a href="#section-4.4.2-4.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.4.2-4.2">
+              <p id="section-4.4.2-4.2.1"><code>Fetch StartGroup=N, EndGroup=M</code>: Historical range retrieval<a href="#section-4.4.2-4.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+<div id="late-join-and-catch-up">
+<section id="section-4.4.3">
+          <h4 id="name-late-join-and-catch-up">
+<a href="#section-4.4.3" class="section-number selfRef">4.4.3. </a><a href="#name-late-join-and-catch-up" class="section-name selfRef">Late-Join and Catch-Up</a>
+          </h4>
+<p id="section-4.4.3-1">New subscribers request <code>StartGroup=LATEST</code> to receive current state
+immediately. After disconnection, subscribers use <code>Fetch</code> with their
+last known group to retrieve missed commits before resuming live
+subscription.<a href="#section-4.4.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="priority-and-parallelism">
+<section id="section-4.5">
+        <h3 id="name-priority-and-parallelism">
+<a href="#section-4.5" class="section-number selfRef">4.5. </a><a href="#name-priority-and-parallelism" class="section-name selfRef">Priority and Parallelism</a>
+        </h3>
+<p id="section-4.5-1">MOQT priority enables efficient delivery ordering:<a href="#section-4.5-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-7">
+          <caption><a href="#table-7" class="selfRef">Table 7</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Block Type</th>
+              <th class="text-left" rowspan="1" colspan="1">Priority</th>
+              <th class="text-left" rowspan="1" colspan="1">Rationale</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Account takedown</td>
+              <td class="text-left" rowspan="1" colspan="1">0-15</td>
+              <td class="text-left" rowspan="1" colspan="1">Safety-critical</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Identity changes</td>
+              <td class="text-left" rowspan="1" colspan="1">16-31</td>
+              <td class="text-left" rowspan="1" colspan="1">Affects routing</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Signed Commit</td>
+              <td class="text-left" rowspan="1" colspan="1">0-15</td>
+              <td class="text-left" rowspan="1" colspan="1">Required for verification</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">MST Root</td>
+              <td class="text-left" rowspan="1" colspan="1">16-31</td>
+              <td class="text-left" rowspan="1" colspan="1">Unlocks tree traversal</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">MST Nodes</td>
+              <td class="text-left" rowspan="1" colspan="1">32-63</td>
+              <td class="text-left" rowspan="1" colspan="1">Enables record verification</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Small Records</td>
+              <td class="text-left" rowspan="1" colspan="1">64-127</td>
+              <td class="text-left" rowspan="1" colspan="1">Core content</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Large Records</td>
+              <td class="text-left" rowspan="1" colspan="1">128-191</td>
+              <td class="text-left" rowspan="1" colspan="1">Less urgent</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Blobs</td>
+              <td class="text-left" rowspan="1" colspan="1">192-255</td>
+              <td class="text-left" rowspan="1" colspan="1">Media, lazy-loadable</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-4.5-3">Content-addressable blocks enable parallel fetching across QUIC streams,
+with total transfer time bounded by the slowest stream rather than the
+sum of all transfers.<a href="#section-4.5-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="relay-aggregation">
+<section id="section-4.6">
+        <h3 id="name-relay-aggregation">
+<a href="#section-4.6" class="section-number selfRef">4.6. </a><a href="#name-relay-aggregation" class="section-name selfRef">Relay Aggregation</a>
+        </h3>
+<p id="section-4.6-1">MOQT relays aggregate firehose streams from multiple upstream sources:<a href="#section-4.6-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6-2">
+<pre>
+Relay Aggregation:
+
+                    Full-Network Relay
+                   ┌────────────────────┐
+                   │  at/firehose/      │
+                   │  relay.network/*   │
+                   └─────────▲──────────┘
+                             │
+        ┌────────────────────┼────────────────────┐
+        │                    │                    │
+ ┌──────┴──────┐      ┌──────┴──────┐      ┌──────┴──────┐
+ │ Regional    │      │ Regional    │      │ Regional    │
+ │ Relay       │      │ Relay       │      │ Relay       │
+ └──────▲──────┘      └──────▲──────┘      └──────▲──────┘
+        │                    │                    │
+      PDS hosts            PDS hosts            PDS hosts
+</pre><a href="#section-4.6-2" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6-3">Relays perform subscription aggregation, namespace republishing,
+event caching for late-join, and deduplication.<a href="#section-4.6-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="reliability-and-recovery">
+<section id="section-5">
+      <h2 id="name-reliability-and-recovery">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-reliability-and-recovery" class="section-name selfRef">Reliability and Recovery</a>
+      </h2>
+<p id="section-5-1">ATOM leverages MOQT's group-based delivery model and QUIC's transport
+features to provide robust reliability mechanisms for AT Protocol
+data synchronization. The key capabilities include cursor mapping
+that translates AT Protocol sequence numbers to MOQT group/object
+positions, gap detection that identifies missing events through
+sequential object tracking, and multiple recovery strategies ranging
+from targeted object fetches to full repository synchronization.
+QUIC's connection migration further ensures that subscribers
+maintain continuous delivery even when network conditions change.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<div id="cursor-mapping">
+<section id="section-5.1">
+        <h3 id="name-cursor-mapping">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-cursor-mapping" class="section-name selfRef">Cursor Mapping</a>
+        </h3>
+<p id="section-5.1-1">AT Protocol cursors map to MOQT group and object identifiers, enabling
+seamless translation between the existing cursor-based replay mechanism
+and MOQT's hierarchical addressing. Each firehose track maintains a
+mapping table that records the sequence number base for each group,
+allowing bidirectional conversion between AT Protocol cursors and
+MOQT positions.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.1-2">When a subscriber needs to resume from a specific cursor position,
+it converts the cursor value to the corresponding group and object
+identifiers. The conversion uses integer division to determine the
+group number and the modulo operation to determine the object offset
+within that group. This deterministic mapping ensures that any cursor
+value can be precisely located within the MOQT track structure.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.1-3">
+<pre>
+Cursor Translation:
+
+AT Cursor (seq: 12345678)
+         │
+         ▼
+┌────────────────────────────────────────┐
+│ Cursor Mapping Table (per track)       │
+│                                        │
+│ seq_base: 12340000                     │
+│ group_size: 1000                       │
+│                                        │
+│ seq 12345678                           │
+│   = seq_base + (group * group_size)    │
+│     + object                           │
+│   = 12340000 + (5 * 1000) + 678        │
+│                                        │
+│ MOQT: Group 5, Object 678              │
+└────────────────────────────────────────┘
+</pre><a href="#section-5.1-3" class="pilcrow">¶</a>
+</div>
+<p id="section-5.1-4">Publishers <span class="bcp14">MUST</span> include the <code>at-seq</code> extension header in each object
+to enable accurate cursor reconstruction.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="gap-detection-and-recovery">
+<section id="section-5.2">
+        <h3 id="name-gap-detection-and-recovery">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-gap-detection-and-recovery" class="section-name selfRef">Gap Detection and Recovery</a>
+        </h3>
+<p id="section-5.2-1">MOQT's group-based delivery model simplifies gap detection compared
+to the current cursor-only approach. This section describes how gaps
+are detected and the recovery strategies available to subscribers.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<div id="detecting-missing-objects">
+<section id="section-5.2.1">
+          <h4 id="name-detecting-missing-objects">
+<a href="#section-5.2.1" class="section-number selfRef">5.2.1. </a><a href="#name-detecting-missing-objects" class="section-name selfRef">Detecting Missing Objects</a>
+          </h4>
+<p id="section-5.2.1-1">Because objects within a group are sequentially numbered and groups
+themselves are ordered, subscribers can immediately identify when
+expected objects are missing by comparing received object identifiers
+against their expected sequence.<a href="#section-5.2.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.2.1-2">
+<pre>
+Gap Detection:
+
+Subscriber State:
+  Last received: Group 5, Object 999
+  Expected next: Group 6, Object 0
+
+Incoming object: Group 6, Object 5
+
+     Expected                    Received
+        │                           │
+        ▼                           ▼
+   ┌─────────┐                 ┌─────────┐
+   │ G6, O0  │  ← Missing! →   │ G6, O5  │
+   └─────────┘                 └─────────┘
+        │
+        ▼
+   Gap detected: Objects 0-4 missing from Group 6
+</pre><a href="#section-5.2.1-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="recovery-fetch-missing-objects">
+<section id="section-5.2.2">
+          <h4 id="name-recovery-fetch-missing-obje">
+<a href="#section-5.2.2" class="section-number selfRef">5.2.2. </a><a href="#name-recovery-fetch-missing-obje" class="section-name selfRef">Recovery: Fetch Missing Objects</a>
+          </h4>
+<p id="section-5.2.2-1">The preferred recovery approach is to fetch only the specific missing
+objects using MOQT's FETCH operation with precise group and object
+boundaries. If relay caches contain the missing data, recovery completes
+without any load on the origin server.<a href="#section-5.2.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.2.2-2">
+<pre>
+Fetch Missing Objects:
+
+Subscriber                           Relay                    Origin
+    │                                  │                        │
+    │── FETCH ────────────────────────▶│                        │
+    │   StartGroup=6, StartObject=0    │                        │
+    │   EndGroup=6, EndObject=4        │                        │
+    │                                  │                        │
+    │                          [Cache hit?]                     │
+    │                              │ Yes                        │
+    │◄── Objects 0-4 ──────────────┘                            │
+    │    (from cache)                                           │
+    │                                                           │
+    │    Gap filled, resume live stream                         │
+</pre><a href="#section-5.2.2-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="recovery-fetch-full-group">
+<section id="section-5.2.3">
+          <h4 id="name-recovery-fetch-full-group">
+<a href="#section-5.2.3" class="section-number selfRef">5.2.3. </a><a href="#name-recovery-fetch-full-group" class="section-name selfRef">Recovery: Fetch Full Group</a>
+          </h4>
+<p id="section-5.2.3-1">For larger gaps spanning multiple groups, subscribers may request
+entire groups rather than specifying individual object ranges.
+This approach is simpler but may retrieve more data than strictly
+necessary.<a href="#section-5.2.3-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.2.3-2">
+<pre>
+Fetch Full Group:
+
+Subscriber                           Relay                    Origin
+    │                                  │                        │
+    │   [Gap spans Groups 6-8]         │                        │
+    │                                  │                        │
+    │── FETCH ────────────────────────▶│                        │
+    │   StartGroup=6, EndGroup=8       │                        │
+    │                                  │                        │
+    │                          [Partial cache]                  │
+    │◄── Group 6 (cached) ─────────────┤                        │
+    │◄── Group 7 (cached) ─────────────┤                        │
+    │                                  │── FETCH ──────────────▶│
+    │                                  │   (Group 8)            │
+    │                                  │◄── Group 8 ────────────│
+    │◄── Group 8 ──────────────────────┤                        │
+    │                                                           │
+    │    All groups received, resume live stream                │
+</pre><a href="#section-5.2.3-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="recovery-full-repository-sync">
+<section id="section-5.2.4">
+          <h4 id="name-recovery-full-repository-sy">
+<a href="#section-5.2.4" class="section-number selfRef">5.2.4. </a><a href="#name-recovery-full-repository-sy" class="section-name selfRef">Recovery: Full Repository Sync</a>
+          </h4>
+<p id="section-5.2.4-1">As a fallback when cached data is unavailable or gaps are too
+extensive, subscribers can perform a full repository synchronization
+using either HTTP CAR exports or the MOQT repository sync track.
+This approach validates the entire repository state against a
+#sync event.<a href="#section-5.2.4-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.2.4-2">
+<pre>
+Full Repository Sync:
+
+Subscriber                           PDS/Relay
+    │                                  │
+    │   [Gap too large or cache miss]  │
+    │                                  │
+    │── GET /xrpc/com.atproto.sync. ──▶│
+    │   getRepo?did=...                │
+    │                                  │
+    │◄── CAR file ─────────────────────│
+    │    (complete repository export)  │
+    │                                  │
+    │   [Validate against #sync event] │
+    │                                  │
+    │   1. Parse CAR blocks            │
+    │   2. Verify MST root matches     │
+    │   3. Update local state          │
+    │   4. Resume live subscription    │
+</pre><a href="#section-5.2.4-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="disconnection-handling">
+<section id="section-5.3">
+        <h3 id="name-disconnection-handling">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-disconnection-handling" class="section-name selfRef">Disconnection Handling</a>
+        </h3>
+<p id="section-5.3-1">MOQT over QUIC provides superior disconnection handling through
+three complementary mechanisms: 0-RTT session resumption, cursor-based
+reconnection, and transparent connection migration.<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<div id="brief-disconnections-0-rtt-resumption">
+<section id="section-5.3.1">
+          <h4 id="name-brief-disconnections-0-rtt-">
+<a href="#section-5.3.1" class="section-number selfRef">5.3.1. </a><a href="#name-brief-disconnections-0-rtt-" class="section-name selfRef">Brief Disconnections: 0-RTT Resumption</a>
+          </h4>
+<p id="section-5.3.1-1">For brief disconnections (typically under 30 seconds), QUIC's 0-RTT
+resumption allows subscribers to restore their session with minimal
+latency. The subscriber presents a session ticket from the previous
+connection, and the relay resumes delivery from where it left off
+if the cached session state remains valid. This typically completes
+in a single round trip.<a href="#section-5.3.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.3.1-2">
+<pre>
+QUIC 0-RTT Resumption:
+
+Subscriber                                Relay
+    │                                       │
+    │   [Connection lost briefly]           │
+    │                                       │
+    │   [Reconnecting with session ticket]  │
+    │                                       │
+    │── QUIC 0-RTT ────────────────────────▶│
+    │   ClientHello + session ticket        │
+    │   + early data (SUBSCRIBE)            │
+    │                                       │
+    │◄── ServerHello + Finished ────────────│
+    │                                       │
+    │◄── Continue from last position ───────│
+    │    (relay cached subscriber state)    │
+    │                                       │
+    │══ Resume live stream (minimal gap) ══▶│
+</pre><a href="#section-5.3.1-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="extended-disconnections-cursor-based-reconnection">
+<section id="section-5.3.2">
+          <h4 id="name-extended-disconnections-cur">
+<a href="#section-5.3.2" class="section-number selfRef">5.3.2. </a><a href="#name-extended-disconnections-cur" class="section-name selfRef">Extended Disconnections: Cursor-Based Reconnection</a>
+          </h4>
+<p id="section-5.3.2-1">For extended disconnections where session state has expired, subscribers
+perform a full reconnection using their saved cursor position. The
+subscriber first uses FETCH to retrieve any missed events from their
+last known position, then establishes a new SUBSCRIBE starting from
+the latest group to receive live updates. Relay caches serve the
+historical data when available, minimizing load on upstream servers.<a href="#section-5.3.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.3.2-2">
+<pre>
+Full Reconnection with Cursor:
+
+Subscriber                                Relay
+    │                                       │
+    │   [Disconnected for extended period]  │
+    │   [Saved state: at-seq = 12345678]    │
+    │                                       │
+    │── QUIC Handshake (full) ─────────────▶│
+    │◄── Connection Established ────────────│
+    │                                       │
+    │── CLIENT_SETUP ──────────────────────▶│
+    │◄── SERVER_SETUP ──────────────────────│
+    │                                       │
+    │   [Convert cursor to Group/Object]    │
+    │   seq 12345678 → Group 5, Object 678  │
+    │                                       │
+    │── FETCH ─────────────────────────────▶│
+    │   StartGroup=5, StartObject=678       │
+    │   EndGroup=LATEST                     │
+    │                                       │
+    │◄── Historical objects (cached) ───────│
+    │                                       │
+    │── SUBSCRIBE ─────────────────────────▶│
+    │   StartGroup=LATEST                   │
+    │◄── SUBSCRIBE_OK ──────────────────────│
+    │                                       │
+    │══ Live stream resumes ═══════════════▶│
+</pre><a href="#section-5.3.2-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="network-transitions-connection-migration">
+<section id="section-5.3.3">
+          <h4 id="name-network-transitions-connect">
+<a href="#section-5.3.3" class="section-number selfRef">5.3.3. </a><a href="#name-network-transitions-connect" class="section-name selfRef">Network Transitions: Connection Migration</a>
+          </h4>
+<p id="section-5.3.3-1">For network transitions such as WiFi-to-cellular handoffs, QUIC's
+connection migration enables seamless continuation without any
+application-layer intervention. The subscriber's IP address changes
+transparently while the MOQT session continues uninterrupted, ensuring
+no gaps in the event stream during mobile network transitions.<a href="#section-5.3.3-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.3.3-2">
+<pre>
+QUIC Connection Migration:
+
+Subscriber (mobile)                       Relay
+    │                                       │
+    │══ Streaming on WiFi ═════════════════▶│
+    │   (IP: 192.168.1.50)                  │
+    │                                       │
+    │   [User moves, WiFi signal lost]      │
+    │   [Device switches to cellular]       │
+    │   [New IP: 10.0.0.75]                 │
+    │                                       │
+    │── QUIC PATH_CHALLENGE ───────────────▶│
+    │   (from new IP address)               │
+    │                                       │
+    │◄── QUIC PATH_RESPONSE ────────────────│
+    │   (path validated)                    │
+    │                                       │
+    │══ Continue streaming on cellular ════▶│
+    │   (no gap, no reconnection needed)    │
+    │                                       │
+    │   [Application layer unaware of       │
+    │    network transition]                │
+</pre><a href="#section-5.3.3-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="authentication-and-authorization">
+<section id="section-6">
+      <h2 id="name-authentication-and-authoriz">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-authentication-and-authoriz" class="section-name selfRef">Authentication and Authorization</a>
+      </h2>
+<p id="section-6-1">TODO<a href="#section-6-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-7">
+      <h2 id="name-security-considerations">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<p id="section-7-1">TODO<a href="#section-7-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-considerations">
+<section id="section-8">
+      <h2 id="name-iana-considerations">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-8-1">TODO<a href="#section-8-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-9">
+      <h2 id="name-references">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-9.1">
+        <h3 id="name-normative-references">
+<a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="AT-ARCH">[AT-ARCH]</dt>
+        <dd>
+<span class="refAuthor">Newbold, B.</span> and <span class="refAuthor">D. Holmgren</span>, <span class="refTitle">"Authenticated Transfer (AT) Protocol Architecture"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-newbold-at-architecture</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-newbold-at-architecture/">https://datatracker.ietf.org/doc/draft-newbold-at-architecture/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="AT-REPO">[AT-REPO]</dt>
+        <dd>
+<span class="refAuthor">Holmgren, D.</span> and <span class="refAuthor">B. Newbold</span>, <span class="refTitle">"Authenticated Transfer (AT) Repository and Synchronization"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-holmgren-at-repository</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-holmgren-at-repository/">https://datatracker.ietf.org/doc/draft-holmgren-at-repository/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="MoQ-TRANSPORT">[MoQ-TRANSPORT]</dt>
+        <dd>
+<span class="refAuthor">Curley, L.</span>, <span class="refAuthor">Pugin, K.</span>, <span class="refAuthor">Nandakumar, S.</span>, <span class="refAuthor">Vasiliev, V.</span>, and <span class="refAuthor">I. Swett</span>, <span class="refTitle">"Media over QUIC Transport"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-moq-transport-16</span>, <time datetime="2026-01" class="refDate">January 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-ietf-moq-transport/">https://datatracker.ietf.org/doc/draft-ietf-moq-transport/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+        <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8446">[RFC8446]</dt>
+        <dd>
+<span class="refAuthor">Rescorla, E.</span>, <span class="refTitle">"The Transport Layer Security (TLS) Protocol Version 1.3"</span>, <span class="seriesInfo">RFC 8446</span>, <span class="seriesInfo">DOI 10.17487/RFC8446</span>, <time datetime="2018-08" class="refDate">August 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8446">https://www.rfc-editor.org/rfc/rfc8446</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9000">[RFC9000]</dt>
+      <dd>
+<span class="refAuthor">Iyengar, J., Ed.</span> and <span class="refAuthor">M. Thomson, Ed.</span>, <span class="refTitle">"QUIC: A UDP-Based Multiplexed and Secure Transport"</span>, <span class="seriesInfo">RFC 9000</span>, <span class="seriesInfo">DOI 10.17487/RFC9000</span>, <time datetime="2021-05" class="refDate">May 2021</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9000">https://www.rfc-editor.org/rfc/rfc9000</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-9.2">
+        <h3 id="name-informative-references">
+<a href="#section-9.2" class="section-number selfRef">9.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="MoQ-C4M">[MoQ-C4M]</dt>
+        <dd>
+<span class="refAuthor">Jennings, S.</span>, <span class="refTitle">"Common Access Token for Media over QUIC"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-moq-c4m</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-ietf-moq-c4m/">https://datatracker.ietf.org/doc/draft-ietf-moq-c4m/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7540">[RFC7540]</dt>
+        <dd>
+<span class="refAuthor">Belshe, M.</span>, <span class="refAuthor">Peon, R.</span>, and <span class="refAuthor">M. Thomson, Ed.</span>, <span class="refTitle">"Hypertext Transfer Protocol Version 2 (HTTP/2)"</span>, <span class="seriesInfo">RFC 7540</span>, <span class="seriesInfo">DOI 10.17487/RFC7540</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7540">https://www.rfc-editor.org/rfc/rfc7540</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8949">[RFC8949]</dt>
+        <dd>
+<span class="refAuthor">Bormann, C.</span> and <span class="refAuthor">P. Hoffman</span>, <span class="refTitle">"Concise Binary Object Representation (CBOR)"</span>, <span class="seriesInfo">STD 94</span>, <span class="seriesInfo">RFC 8949</span>, <span class="seriesInfo">DOI 10.17487/RFC8949</span>, <time datetime="2020-12" class="refDate">December 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8949">https://www.rfc-editor.org/rfc/rfc8949</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="WebTransport">[WebTransport]</dt>
+      <dd>
+<span class="refAuthor">Vasiliev, V.</span>, <span class="refTitle">"The WebTransport Protocol Framework"</span>, <span class="seriesInfo">RFC 9297</span>, <time datetime="2023-08" class="refDate">August 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9297">https://www.rfc-editor.org/rfc/rfc9297</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-A">
+      <h2 id="name-authors-addresses">
+<a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Suhas Nandakumar</span></div>
+<div dir="auto" class="left"><span class="org">Cisco</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:snandaku@cisco.com" class="email">snandaku@cisco.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Cullen Jennings</span></div>
+<div dir="auto" class="left"><span class="org">Cisco Systems</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:fluffy@cisco.com" class="email">fluffy@cisco.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
